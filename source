@@ -1,102 +1,156 @@
-float x1, y1, d1, vx1, vy1;
-float x2, y2, d2, vx2, vy2;
-float x3, y3, d3, vx3, vy3;
-
-color bgColor;
+float x1, y1, x2, y2;
+int aaa = 0;
+int catchTime = -1;
+int scoreNomnom = 0;
+int scoreRyudog = 0;
+int lastWinner = -1;
+boolean gameOver = false;
+String winnerName = "";
 
 void setup() {
-  size(800, 800);
-
-  x1 = y1 = 150;
-  d1 = 10;
-  vx1 = -3; vy1 = 4;
-
-  x2 = y2 = 150;
-  d2 = 10;
-  vx2 = 6; vy2 = 4;
-
-  x3 = y3 = 150;
-  d3 = 10;
-  vx3 = 4; vy3 = 2;
-
-  bgColor = color(255);  // 흰 배경
+  size(800, 600);  
+  x1 = random(width);
+  y1 = random(height);
+  x2 = random(width);
+  y2 = random(height);
+  textSize(50);
 }
-
 void draw() {
-  background(bgColor);
-
-  x1 += vx1;
-  y1 += vy1;
-  if (x1 < 0 || x1 > width) vx1 = -vx1;
-  if (y1 < 0 || y1 > height) vy1 = -vy1;
-  ryudog(x1, y1, d1);
-
-  x2 += vx2;
-  y2 += vy2;
-  if (x2 < 0 || x2 > width) vx2 = -vx2;
-  if (y2 < 0 || y2 > height) vy2 = -vy2;
-  smile(x2, y2, d2);
-
-  x3 += vx3;
-  y3 += vy3;
-  if (x3 < 0 || x3 > width) vx3 = -vx3;
-  if (y3 < 0 || y3 > height) vy3 = -vy3;
-  nomnom(x3, y3, d3);
+  if (!gameOver && catchTime == -1) {
+    aaa++;
+  }
+  // 턴 배경색
+  if (aaa < 5 * frameRate) {
+    background(135, 206, 250);
+  } else if (aaa < 10 * frameRate) {
+    background(255, 182, 193);
+  } else {
+    aaa = 0;
+  }
+  // 캐릭터 그리기
+  ryudog(x1, y1, 10);  
+  nomnom(x2, y2, 10); 
+  // 잡혔는지 확인 + 점수 처리
+  if (!gameOver && catchTime == -1 && dist(x1, y1, x2, y2) < 100) {
+    catchTime = frameCount;
+    if (aaa < 5 * frameRate) {
+      scoreRyudog++;
+      lastWinner = 0;
+      if (scoreRyudog >= 5) {
+        gameOver = true;
+        winnerName = "ryudog";
+      }
+    } else if (aaa < 10 * frameRate) {
+      scoreNomnom++;
+      lastWinner = 1;
+      if (scoreNomnom >= 5) {
+        gameOver = true;
+        winnerName = "nomnom";
+      }
+    }
+  }
+  // catch 상태 처리
+  if (catchTime != -1) {
+    textAlign(CENTER, CENTER);
+    text("catch", width / 2, height / 20);
+    if (!gameOver && frameCount - catchTime > 5 * frameRate) {
+      x1 = random(width);
+      y1 = random(height);
+      x2 = random(width);
+      y2 = random(height);
+      catchTime = -1;
+      // 다음 턴을 점수 못 얻은 사람이 먼저 시작
+      if (lastWinner == 0) {
+        aaa = int(5 * frameRate + 1); // nomnom부터
+      } else if (lastWinner == 1) {
+        aaa = 1; // ryudog부터
+      } else {
+        aaa = 0;
+      }
+    }
+  } else if (!gameOver) {
+    textAlign(CENTER, TOP);
+    text("hurry up", width / 2, 20);
+  }
+  // 점수 표시
+  textAlign(LEFT, TOP);
+  textSize(30);
+  fill(0);
+  text("nomnom " + scoreNomnom + " : ryudog " + scoreRyudog, 20, 20);
+  // 턴 정보 표시
+  textAlign(LEFT, BASELINE);
+  textSize(50);
+  if (aaa < 5 * frameRate) text("ryudog", 100, height - 50);
+  else if (aaa < 10 * frameRate) text("nomnom", 100, height - 50);
+  // 승자 표시
+  if (gameOver) {
+    textAlign(CENTER, CENTER);
+    fill(255, 0, 0);
+    textSize(60);
+    text("winner : " + winnerName, width / 2, height / 2);
+  }
 }
-
-void mousePressed() {
-  bgColor = color(random(255), random(255), random(255));
+void mouseDragged() {
+  if (!gameOver && aaa < 5 * frameRate && catchTime == -1) {
+    x1 = mouseX; 
+    y1 = mouseY;
+  }
+}
+void keyPressed() {
+  if (!gameOver && aaa > 5 * frameRate && aaa < 10 * frameRate && catchTime == -1) {
+    int speed = 8;
+    if (key == 'w') y2 -= speed;
+    else if (key == 'a') x2 -= speed;
+    else if (key == 's') y2 += speed;
+    else if (key == 'd') x2 += speed;
+  }
+  // R 키 누르면 게임 리셋
+  if (key == 'r' || key == 'R') {
+    resetGame();
+  }
+}
+void resetGame() {
+  x1 = random(width);
+  y1 = random(height);
+  x2 = random(width);
+  y2 = random(height);
+  aaa = 0;
+  catchTime = -1;
+  scoreNomnom = 0;
+  scoreRyudog = 0;
+  lastWinner = -1;
+  gameOver = false;
+  winnerName = "";
 }
 void ryudog(float x, float y, float d) {
-  // 얼굴 (사각형, 흰색 내부, 검은색 테두리)
   fill(255);
   stroke(0);
   rect(x - 5 * d, y - 4 * d, 10 * d, 10 * d);
-
-  // 왼쪽 눈 검은색
   fill(0);
   stroke(0);
   circle(x - 2 * d, y - 1 * d, 1 * d);
-
-  // 오른쪽 눈 검은색
-  fill(0);
-  stroke(0);
   circle(x + 2 * d, y - 1 * d, 1 * d);
-
-  //입(검은색 테투리)
   fill(255);
   stroke(0);
   rect(x - 2 * d, y + 1 * d, 4 * d, 4 * d);
-
-  // 코
-  fill(0);         // 검은색
+  fill(0);
   stroke(0);
   rect(x - 0.5 * d, y + 2 * d, 1 * d, 1 * d);
 }
 void nomnom(float x, float y, float d) {
+  float scale = 0.5; 
+  d *= scale;
   fill(200,200,200);
   circle(x-8*d,y-8*d,10*d);
-  circle(x+8*d,y-8*d,10*d); //ear
-  circle(x,y,20*d); //face
+  circle(x+8*d,y-8*d,10*d);
+  circle(x,y,20*d);  
   fill(255);
-  circle(x-4*d,y-4*d,4*d);
-  circle(x+4*d,y-4*d,4*d);
+  circle(x-4*d,y-4*d,4*d);  
+  circle(x+4*d,y-4*d,4*d);  
   fill(0);
-  circle(x-4*d,y-5*d,2*d);
-  circle(x+4*d,y-5*d,2*d); //eye
-  ellipse(x,y-2*d,4*d,6*d); //nose
+  circle(x-4*d,y-5*d,2*d);  
+  circle(x+4*d,y-5*d,2*d);  
+  ellipse(x,y-2*d,4*d,6*d); 
   fill(250,0,0);
-  arc(x,y+d,8*d,4*d,0,PI); //mouth
-}
-void smile(float x,float y, float d){
-  fill(255);
-  circle(x,y,10*d);  // face
-  circle(x-2*d,y-d,2*d); // left eye
-  noFill();
-  arc(x+2*d,y-d,2*d,2*d,PI,2*PI);
-  fill(255,0,0);
-  noStroke();
-  arc(x,y+d,8*d,4*d,0,PI); // mouth
-  fill(255);    // return to default state
-  stroke(0); // return to default state
+  arc(x,y+d,8*d,4*d,0,PI); 
 }
