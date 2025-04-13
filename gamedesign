@@ -1,0 +1,207 @@
+String gameState = "START";
+int[][] maze = new int[20][20];
+float playerX, playerY;
+int score = 0;
+int cellSize = 40;
+
+void setup() {
+  size(800, 840);
+  setupMaze();
+}
+
+void draw() {
+  if (gameState.equals("START")) {
+    background(255);
+    fill(0);
+    rect(300, 400, 200, 100);
+    fill(255);
+    textSize(32);
+    textAlign(CENTER);
+    text("GAME START", 400, 450);
+  } else if (gameState.equals("PLAY")) {
+    background(255);
+    drawMaze();
+    ryudog(playerX, playerY, 2);
+    checkGoal();
+    checkGameOver();
+    fill(0);
+    textSize(24);
+    textAlign(LEFT);
+    text("Score: " + score, 10, 30);
+  } else if (gameState.equals("GAMEOVER")) {
+    background(255);
+    fill(255, 0, 0);
+    textSize(48);
+    textAlign(CENTER);
+    text("GAME OVER", 400, 400);
+    textSize(32);
+    text("Score: " + score, 400, 450);
+    fill(0);
+    rect(300, 500, 200, 100);
+    fill(255);
+    textSize(32);
+    text("RETRY", 400, 550);
+  }
+}
+void ryudog(float x, float y, float d) {
+  fill(255);
+  stroke(0);
+  rect(x - 5 * d, y - 4 * d, 10 * d, 10 * d);
+  fill(0);
+  circle(x - 2 * d, y - 1 * d, 1 * d);
+  circle(x + 2 * d, y - 1 * d, 1 * d);
+  fill(255);
+  rect(x - 2 * d, y + 1 * d, 4 * d, 4 * d);
+  fill(0);
+  rect(x - 0.5 * d, y + 2 * d, 1 * d, 1 * d);
+}
+void setupMaze() {
+  for (int i = 0; i < 20; i++) {
+    for (int j = 0; j < 20; j++) {
+      maze[i][j] = 1;
+    }
+  }
+  generateMaze(1, 1);
+  maze[1][1] = 0;
+  playerX = 1 * cellSize + cellSize / 2;
+  playerY = 1 * cellSize + cellSize / 2 + 40;
+  int[][] exits = new int[2][2];
+  int exitCount = 0;
+  while (exitCount < 2) {
+    int x, y;
+    int side = int(random(4));
+    if (side == 0) {
+      x = int(random(5, 15));
+      y = 0;
+    } else if (side == 1) {
+      x = int(random(5, 15));
+      y = 19;
+    } else if (side == 2) {
+      x = 0;
+      y = int(random(5, 15));
+    } else {
+      x = 19;
+      y = int(random(5, 15));
+    }
+    if (!isExitTooClose(exits, x, y, exitCount)) {
+      exits[exitCount][0] = x;
+      exits[exitCount][1] = y;
+      if (x == 0) maze[y][1] = 0;
+      else if (x == 19) maze[y][18] = 0;
+      else if (y == 0) maze[1][x] = 0;
+      else if (y == 19) maze[18][x] = 0;
+      exitCount++;
+    }
+  }
+  int goalIndex = int(random(2));
+  maze[exits[goalIndex][1]][exits[goalIndex][0]] = 3;
+  for (int i = 0; i < 2; i++) {
+    if (i != goalIndex) {
+      maze[exits[i][1]][exits[i][0]] = 4;
+    }
+  }
+  maze[1][1] = 0;
+  maze[1][2] = 0;
+  maze[2][1] = 0;
+}
+
+void generateMaze(int x, int y) {
+  maze[y][x] = 0;
+  int[][] directions = { {0, -2}, {2, 0}, {0, 2}, {-2, 0} };
+  for (int i = directions.length - 1; i > 0; i--) {
+    int j = int(random(i + 1));
+    int[] temp = directions[i];
+    directions[i] = directions[j];
+    directions[j] = temp;
+  }
+  for (int[] dir : directions) {
+    int nx = x + dir[0];
+    int ny = y + dir[1];
+    if (nx > 0 && nx < 19 && ny > 0 && ny < 19 && maze[ny][nx] == 1) {
+      maze[y + dir[1]/2][x + dir[0]/2] = 0;
+      generateMaze(nx, ny);
+    }
+  }
+}
+boolean isExitTooClose(int[][] exits, int x, int y, int count) {
+  for (int i = 0; i < count; i++) {
+    int dx = abs(exits[i][0] - x);
+    int dy = abs(exits[i][1] - y);
+    if (dx + dy < 5) {
+      return true;
+    }
+  }
+  return false;
+}
+void drawMaze() {
+  for (int i = 0; i < 20; i++) {
+    for (int j = 0; j < 20; j++) {
+      if (maze[i][j] == 1) {
+        fill(0);
+      } else if (maze[i][j] == 3 || maze[i][j] == 4) {
+        fill(0, 255, 0);
+      } else {
+        fill(255);
+      }
+      rect(j * cellSize, i * cellSize + 40, cellSize, cellSize);
+    }
+  }
+}
+void checkGoal() {
+  int gridX = int(playerX / cellSize);
+  int gridY = int((playerY - 40) / cellSize);
+  if (gridX >= 0 && gridX < 20 && gridY >= 0 && gridY < 20 && maze[gridY][gridX] == 3) {
+    score++;
+    setupMaze();
+  }
+}
+void checkGameOver() {
+  int gridX = int(playerX / cellSize);
+  int gridY = int((playerY - 40) / cellSize);
+  if (gridX >= 0 && gridX < 20 && gridY >= 0 && gridY < 20 && maze[gridY][gridX] == 4) {
+    gameState = "GAMEOVER";
+  }
+}
+void mousePressed() {
+  if (gameState.equals("START")) {
+    if (mouseX > 300 && mouseX < 500 && mouseY > 400 && mouseY < 500) {
+      gameState = "PLAY";
+      score = 0;
+      setupMaze();
+    }
+  } else if (gameState.equals("GAMEOVER")) {
+    if (mouseX > 300 && mouseX < 500 && mouseY > 500 && mouseY < 600) {
+      gameState = "PLAY";
+      setupMaze();
+    }
+  }
+}
+void keyPressed() {
+  if (gameState.equals("PLAY")) {
+    float newX = playerX;
+    float newY = playerY;
+    if (keyCode == UP) {
+      newY -= cellSize;
+    } else if (keyCode == DOWN) {
+      newY += cellSize;
+    } else if (keyCode == LEFT) {
+      newX -= cellSize;
+    } else if (keyCode == RIGHT) {
+      newX += cellSize;
+    }
+    int gridX = int(newX / cellSize);
+    int gridY = int((newY - 40) / cellSize);
+    if (gridX >= 0 && gridX < 20 && gridY >= 0 && gridY < 20 && maze[gridY][gridX] != 1) {
+      playerX = newX;
+      playerY = newY;
+    }
+    if (key == 'z' || key == 'Z') {
+      setupMaze();
+    }
+  }
+  if (key == 'r' || key == 'R') {
+    gameState = "START";
+    score = 0;
+    setupMaze();
+  }
+}
